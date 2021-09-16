@@ -5,19 +5,17 @@ namespace TestApp
 {
     class ForwardOnlyStream : Stream
     {
-#pragma warning disable CA2213 // Disposable fields should be disposed
         private readonly Stream _steam;
-#pragma warning restore CA2213 // Disposable fields should be disposed
 
-        public override bool CanRead => _steam.CanRead;
+        public override bool CanRead { get { return _steam.CanRead; } }
 
-        public override bool CanSeek => false;
+        public override bool CanSeek { get { return false; } }
 
-        public override bool CanWrite => false;
+        public override bool CanWrite { get { return false; } }
 
-        public override long Length => throw new NotSupportedException();
+        public override long Length { get {  throw new NotSupportedException(); } }
 
-        public override long Position { get => _steam.Position; set => throw new NotSupportedException(); }
+        public override long Position { get { return _steam.Position; } set { throw new NotSupportedException(); } }
 
         public ForwardOnlyStream(Stream stream)
         {

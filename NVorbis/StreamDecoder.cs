@@ -10,7 +10,10 @@ namespace NVorbis
     /// </summary>
     public sealed class StreamDecoder : IStreamDecoder
     {
-        static internal Func<IFactory> CreateFactory { get; set; } = () => new Factory();
+        static internal IFactory CreateFactory()
+        {
+            return new Factory();
+        }
 
         private Contracts.IPacketProvider _packetProvider;
         private IFactory _factory;
@@ -49,8 +52,12 @@ namespace NVorbis
 
         internal StreamDecoder(Contracts.IPacketProvider packetProvider, IFactory factory)
         {
-            _packetProvider = packetProvider ?? throw new ArgumentNullException(nameof(packetProvider));
-            _factory = factory ?? throw new ArgumentNullException(nameof(factory));
+            if (packetProvider == null) 
+                throw new ArgumentNullException("packetProvider");
+            if (factory == null) 
+                throw new ArgumentNullException("factory");
+            _packetProvider = packetProvider;
+            _factory = factory;
 
             _stats = new StreamStats();
 
@@ -319,10 +326,14 @@ namespace NVorbis
         /// <remarks>The data populated into <paramref name="buffer"/> is interleaved by channel in normal PCM fashion: Left, Right, Left, Right, Left, Right</remarks>
         public int Read(Span<float> buffer, int offset, int count)
         {
-            if (buffer == null) throw new ArgumentNullException(nameof(buffer));
-            if (offset < 0 || offset + count > buffer.Length) throw new ArgumentOutOfRangeException(nameof(offset));
-            if (count % _channels != 0) throw new ArgumentOutOfRangeException(nameof(count), "Must be a multiple of Channels!");
-            if (_packetProvider == null) throw new ObjectDisposedException(nameof(StreamDecoder));
+            if (buffer == null) 
+                throw new ArgumentNullException("buffer");
+            if (offset < 0 || offset + count > buffer.Length) 
+                throw new ArgumentOutOfRangeException("offset");
+            if (count % _channels != 0) 
+                throw new ArgumentOutOfRangeException("count", "Must be a multiple of Channels!");
+            if (_packetProvider == null) 
+                throw new ObjectDisposedException(typeof(StreamDecoder).Name);
 
             // if the caller didn't ask for any data, bail early
             if (count == 0)
@@ -349,7 +360,8 @@ namespace NVorbis
                         break;
                     }
 
-                    if (!ReadNextPacket((idx - offset) / _channels, out var samplePosition))
+                    long? samplePosition;
+                    if (!ReadNextPacket((idx - offset) / _channels, out samplePosition))
                     {
                         // drain the current packet (the windowing will fade it out)
                         _prevPacketEnd = _prevPacketStop;
@@ -417,7 +429,9 @@ namespace NVorbis
         private bool ReadNextPacket(int bufferedSamples, out long? samplePosition)
         {
             // decode the next packet now so we can start overlapping with it
-            var curPacket = DecodeNextPacket(out var startIndex, out var validLen, out var totalLen, out var isEndOfStream, out samplePosition, out var bitsRead, out var bitsRemaining, out var containerOverheadBits);
+            int startIndex, validLen, totalLen, bitsRead, bitsRemaining, containerOverheadBits;
+            bool isEndOfStream;
+            var curPacket = DecodeNextPacket(out startIndex, out validLen, out totalLen, out isEndOfStream, out samplePosition, out bitsRead, out bitsRemaining, out containerOverheadBits);
             _eosFound |= isEndOfStream;
             if (curPacket == null)
             {
@@ -525,7 +539,8 @@ namespace NVorbis
             }
             finally
             {
-                packet?.Done();
+                if (packet != null)
+                    packet.Done();
             }
         }
 
@@ -561,7 +576,8 @@ namespace NVorbis
         /// <param name="seekOrigin">The reference point used to obtain the new position.</param>
         public void SeekTo(long samplePosition, SeekOrigin seekOrigin = SeekOrigin.Begin)
         {
-            if (_packetProvider == null) throw new ObjectDisposedException(nameof(StreamDecoder));
+            if (_packetProvider == null) 
+                throw new ObjectDisposedException(typeof(StreamDecoder).Name);
             if (!_packetProvider.CanSeek) throw new InvalidOperationException("Seek is not supported by the Contracts.IPacketProvider instance.");
 
             switch (seekOrigin)
@@ -576,10 +592,10 @@ namespace NVorbis
                     samplePosition = TotalSamples - samplePosition;
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(seekOrigin));
+                    throw new ArgumentOutOfRangeException("seekOrigin");
             }
 
-            if (samplePosition < 0) throw new ArgumentOutOfRangeException(nameof(samplePosition));
+            if (samplePosition < 0) throw new ArgumentOutOfRangeException("samplePosition");
 
             int rollForward;
             if (samplePosition == 0)
@@ -600,6 +616,7 @@ namespace NVorbis
             _hasPosition = true;
 
             // read the pre-roll packet
+            long? _;
             if (!ReadNextPacket(0, out _))
             {
                 // we'll use this to force ReadSamples to fail to read
@@ -647,7 +664,9 @@ namespace NVorbis
         /// </summary>
         public void Dispose()
         {
-            (_packetProvider as IDisposable)?.Dispose();
+            var disposable = _packetProvider as IDisposable;
+            if (disposable != null)
+                disposable.Dispose();
             _packetProvider = null;
         }
 
@@ -656,12 +675,12 @@ namespace NVorbis
         /// <summary>
         /// Gets the number of channels in the stream.
         /// </summary>
-        public int Channels => _channels;
+        public int Channels { get { return _channels; } }
 
         /// <summary>
         /// Gets the sample rate of the stream.
         /// </summary>
-        public int SampleRate => _sampleRate;
+        public int SampleRate { get { return _sampleRate; } }
 
         /// <summary>
         /// Gets the upper bitrate limit for the stream, if specified.
@@ -681,25 +700,33 @@ namespace NVorbis
         /// <summary>
         /// Gets the tag data from the stream's header.
         /// </summary>
-        public ITagData Tags => _tags ?? (_tags = new TagData(_vendor, _comments));
+        public ITagData Tags { get { return _tags ?? (_tags = new TagData(_vendor, _comments)); } }
 
         /// <summary>
         /// Gets the total duration of the decoded stream.
         /// </summary>
-        public TimeSpan TotalTime => TimeSpan.FromSeconds((double)TotalSamples / _sampleRate);
+        public TimeSpan TotalTime { get { return TimeSpan.FromSeconds((double)TotalSamples / _sampleRate); } }
 
         /// <summary>
         /// Gets the total number of samples in the decoded stream.
         /// </summary>
-        public long TotalSamples => _packetProvider?.GetGranuleCount() ?? throw new ObjectDisposedException(nameof(StreamDecoder));
+        public long TotalSamples 
+        { 
+            get 
+            { 
+                if (_packetProvider == null)
+                    throw new ObjectDisposedException(typeof(StreamDecoder).Name);
+                return _packetProvider.GetGranuleCount(); 
+            } 
+        }
 
         /// <summary>
         /// Gets or sets the current time position of the stream.
         /// </summary>
         public TimeSpan TimePosition
         {
-            get => TimeSpan.FromSeconds((double)_currentPosition / _sampleRate);
-            set => SeekTo(value);
+            get { return TimeSpan.FromSeconds((double)_currentPosition / _sampleRate); }
+            set { SeekTo(value); }
         }
 
         /// <summary>
@@ -707,8 +734,8 @@ namespace NVorbis
         /// </summary>
         public long SamplePosition
         {
-            get => _currentPosition;
-            set => SeekTo(value);
+            get { return _currentPosition; }
+            set { SeekTo(value); }
         }
 
         /// <summary>
@@ -719,17 +746,17 @@ namespace NVorbis
         /// <summary>
         /// Gets whether <see cref="Read(Span&lt;float&gt;, int, int)"/> has returned any clipped samples.
         /// </summary>
-        public bool HasClipped => _hasClipped;
+        public bool HasClipped { get { return _hasClipped; } }
 
         /// <summary>
         /// Gets whether the decoder has reached the end of the stream.
         /// </summary>
-        public bool IsEndOfStream => _eosFound && _prevPacketBuf == null;
+        public bool IsEndOfStream { get { return _eosFound && _prevPacketBuf == null; } }
 
         /// <summary>
         /// Gets the <see cref="IStreamStats"/> instance for this stream.
         /// </summary>
-        public IStreamStats Stats => _stats;
+        public IStreamStats Stats { get { return _stats; } }
 
         #endregion
     }

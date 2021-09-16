@@ -10,7 +10,7 @@ namespace NVorbis.Contracts
         /// <summary>
         /// Gets the full list of tags encountered in the stream.
         /// </summary>
-        IReadOnlyDictionary<string, IReadOnlyList<string>> All { get; }
+        Dictionary<string, IList<string>> All { get; }
 
         /// <summary>
         /// The vendor string from the stream header.

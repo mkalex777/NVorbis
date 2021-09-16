@@ -7,7 +7,10 @@ namespace NVorbis.Ogg
 {
     class ForwardOnlyPageReader : PageReaderBase
     {
-        internal static Func<IPageReader, int, IForwardOnlyPacketProvider> CreatePacketProvider { get; set; } = (pr, ss) => new ForwardOnlyPacketProvider(pr, ss);
+        internal static IForwardOnlyPacketProvider CreatePacketProvider(IPageReader pr, int ss)
+        {
+            return new ForwardOnlyPacketProvider(pr, ss);
+        }
 
         private readonly Dictionary<int, IForwardOnlyPacketProvider> _packetProviders = new Dictionary<int, IForwardOnlyPacketProvider>();
         private readonly Func<Contracts.IPacketProvider, bool> _newStreamCallback;
@@ -20,7 +23,8 @@ namespace NVorbis.Ogg
 
         protected override bool AddPage(int streamSerial, byte[] pageBuf, bool isResync)
         {
-            if (_packetProviders.TryGetValue(streamSerial, out var pp))
+            IForwardOnlyPacketProvider pp;
+            if (_packetProviders.TryGetValue(streamSerial, out pp))
             {
                 // try to add the page...
                 if (pp.AddPage(pageBuf, isResync))
@@ -59,6 +63,9 @@ namespace NVorbis.Ogg
             _packetProviders.Clear();
         }
 
-        public override bool ReadPageAt(long offset) => throw new NotSupportedException();
+        public override bool ReadPageAt(long offset)
+        {
+            throw new NotSupportedException();
+        }
     }
 }

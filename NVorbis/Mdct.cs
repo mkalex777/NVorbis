@@ -12,7 +12,8 @@ namespace NVorbis
 
         public void Reverse(float[] samples, int sampleCount)
         {
-            if (!_setupCache.TryGetValue(sampleCount, out var impl))
+            MdctImpl impl;
+            if (!_setupCache.TryGetValue(sampleCount, out impl))
             {
                 impl = new MdctImpl(sampleCount);
                 _setupCache[sampleCount] = impl;

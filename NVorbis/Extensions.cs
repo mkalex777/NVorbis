@@ -18,11 +18,14 @@ namespace NVorbis
         /// <returns>The number of bytes actually read into the buffer.</returns>
         public static int Read(this IPacket packet, byte[] buffer, int index, int count)
         {
-            if (index < 0 || index >= buffer.Length) throw new ArgumentOutOfRangeException(nameof(index));
-            if (count < 0 || index + count > buffer.Length) throw new ArgumentOutOfRangeException(nameof(count));
+            if (index < 0 || index >= buffer.Length) 
+                throw new ArgumentOutOfRangeException("index");
+            if (count < 0 || index + count > buffer.Length) 
+                throw new ArgumentOutOfRangeException("count");
             for (int i = 0; i < count; i++)
             {
-                var value = (byte)packet.TryPeekBits(8, out var bitsRead);
+                int bitsRead;
+                var value = (byte)packet.TryPeekBits(8, out bitsRead);
                 if (bitsRead == 0)
                 {
                     return i;
@@ -68,6 +71,7 @@ namespace NVorbis
         /// <returns>The byte read from the packet.</returns>
         public static byte PeekByte(this IPacket packet)
         {
+            int _;
             return (byte)packet.TryPeekBits(8, out _);
         }
 

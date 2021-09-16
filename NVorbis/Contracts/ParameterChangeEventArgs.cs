@@ -21,11 +21,11 @@ namespace NVorbis.Contracts
         /// <summary>
         /// Get the new number of channels in the stream.
         /// </summary>
-        public int Channels { get; }
+        public int Channels { get; private set; }
 
         /// <summary>
         /// Gets the new sample rate of the stream.
         /// </summary>
-        public int SampleRate { get; }
+        public int SampleRate { get; private set; }
     }
 }

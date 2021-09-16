@@ -6,7 +6,10 @@ namespace NVorbis.Ogg
 {
     class StreamPageReader : IStreamPageReader
     {
-        internal static Func<IStreamPageReader, int, Contracts.IPacketProvider> CreatePacketProvider { get; set; } = (pr, ss) => new PacketProvider(pr, ss);
+        internal static Contracts.IPacketProvider CreatePacketProvider(IStreamPageReader pr, int ss)
+        {
+            return new PacketProvider(pr, ss);
+        }
 
         private readonly IPageData _reader;
         private readonly List<long> _pageOffsets = new List<long>();
@@ -132,7 +135,8 @@ namespace NVorbis.Ogg
             {
                 // start by looking at the last read page's position...
                 var lastPageIndex = _pageOffsets.Count - 1;
-                if (GetPageRaw(lastPageIndex, out var pageGP))
+                long pageGP;
+                if (GetPageRaw(lastPageIndex, out pageGP))
                 {
                     // most likely, we can look at previous pages for the appropriate one...
                     if (granulePos < pageGP)
@@ -154,7 +158,7 @@ namespace NVorbis.Ogg
             }
             if (pageIndex == -1)
             {
-                throw new ArgumentOutOfRangeException(nameof(granulePos));
+                throw new ArgumentOutOfRangeException("granulePos");
             }
             return pageIndex;
         }
@@ -221,7 +225,8 @@ namespace NVorbis.Ogg
                 var index = low + (int)(dist * ((granulePos - lowGranulePos) / (double)(highGranulePos - lowGranulePos)));
 
                 // go get the actual position of the selected page
-                if (!GetPageRaw(index, out var idxGranulePos))
+                long idxGranulePos;
+                if (!GetPageRaw(index, out idxGranulePos))
                 {
                     return -1;
                 }
@@ -366,12 +371,12 @@ namespace NVorbis.Ogg
             HasAllPages = true;
         }
 
-        public int PageCount => _pageOffsets.Count;
+        public int PageCount { get { return _pageOffsets.Count; } }
 
         public bool HasAllPages { get; private set; }
 
-        public long? MaxGranulePosition => HasAllPages ? (long?)_maxGranulePos : null;
+        public long? MaxGranulePosition { get { return HasAllPages ? (long?)_maxGranulePos : null; } }
 
-        public int FirstDataPageIndex => _firstDataPageIndex ?? (_firstDataPageIndex = FindPageForward(0, 0, 1)).Value;
+        public int FirstDataPageIndex { get { return _firstDataPageIndex ?? (_firstDataPageIndex = FindPageForward(0, 0, 1)).Value; } }
     }
 }

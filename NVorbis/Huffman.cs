@@ -71,8 +71,8 @@ namespace NVorbis
             }
 
             TableBits = tableBits;
-            PrefixTree = prefixList;
-            OverflowList = overflowList;
+            PrefixTree = prefixList.ToReadOnlyList();
+            OverflowList = overflowList.ToReadOnlyList();
         }
 
         int IComparer<HuffmanListNode>.Compare(HuffmanListNode x, HuffmanListNode y)

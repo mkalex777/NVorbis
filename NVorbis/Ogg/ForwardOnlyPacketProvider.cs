@@ -7,8 +7,19 @@ namespace NVorbis.Ogg
 {
     class ForwardOnlyPacketProvider : DataPacket, IForwardOnlyPacketProvider
     {
+        private class PageQueueItem
+        {
+            public byte[] buf;
+            public bool isResync;
+            public PageQueueItem(byte[] buf, bool isResync)
+            {
+                this.buf = buf;
+                this.isResync = isResync;
+            }
+        }
+        
         private int _lastSeqNo;
-        private readonly Queue<(byte[] buf, bool isResync)> _pageQueue = new Queue<(byte[] buf, bool isResync)>();
+        private readonly Queue<PageQueueItem> _pageQueue = new Queue<PageQueueItem>();
 
         private readonly IPageReader _reader;
         private byte[] _pageBuf;
@@ -30,9 +41,9 @@ namespace NVorbis.Ogg
             _packetIndex = int.MaxValue;
         }
 
-        public bool CanSeek => false;
+        public bool CanSeek { get { return false; } }
 
-        public int StreamSerial { get; }
+        public int StreamSerial { get; private set; }
 
         public bool AddPage(byte[] buf, bool isResync)
         {
@@ -64,7 +75,7 @@ namespace NVorbis.Ogg
                 return false;
             }
 
-            _pageQueue.Enqueue((buf, isResync));
+            _pageQueue.Enqueue(new PageQueueItem(buf, isResync));
             return true;
         }
 
@@ -295,7 +306,7 @@ namespace NVorbis.Ogg
             return len;
         }
 
-        protected override int TotalBits => _packetBuf.Length * 8;
+        protected override int TotalBits { get { return _packetBuf.Length * 8; } }
 
         protected override int ReadNextByte()
         {
@@ -318,7 +329,7 @@ namespace NVorbis.Ogg
             base.Done();
         }
 
-        long Contracts.IPacketProvider.GetGranuleCount() => throw new NotSupportedException();
-        long Contracts.IPacketProvider.SeekTo(long granulePos, int preRoll, GetPacketGranuleCount getPacketGranuleCount) => throw new NotSupportedException();
+        long Contracts.IPacketProvider.GetGranuleCount() { throw new NotSupportedException(); }
+        long Contracts.IPacketProvider.SeekTo(long granulePos, int preRoll, GetPacketGranuleCount getPacketGranuleCount) { throw new NotSupportedException(); }
     }
 }

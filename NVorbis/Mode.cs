@@ -128,7 +128,8 @@ namespace NVorbis
 
         public bool Decode(IPacket packet, float[][] buffer, out int packetStartindex, out int packetValidLength, out int packetTotalLength)
         {
-            if (GetPacketInfo(packet, out var blockSize, out var windowIndex, out _, out packetStartindex, out packetValidLength, out packetTotalLength))
+            int _, blockSize, windowIndex;
+            if (GetPacketInfo(packet, out blockSize, out windowIndex, out _, out packetStartindex, out packetValidLength, out packetTotalLength))
             {
                 _mapping.DecodePacket(packet, blockSize, _channels, buffer);
 
@@ -147,11 +148,12 @@ namespace NVorbis
 
         public int GetPacketSampleCount(IPacket packet, bool isFirst)
         {
-            GetPacketInfo(packet, out _, out _, out var leftOverlapHalfSize, out var packetStartIndex, out var packetValidLength, out _);
+            int _, leftOverlapHalfSize, packetStartIndex, packetValidLength;
+            GetPacketInfo(packet, out _, out _, out leftOverlapHalfSize, out packetStartIndex, out packetValidLength, out _);
             return packetValidLength - packetStartIndex - (isFirst ? leftOverlapHalfSize * 2 : 0);
         }
 
-        public int BlockSize => _blockFlag ? _block1Size : _block0Size;
+        public int BlockSize { get { return _blockFlag ? _block1Size : _block0Size; } }
 
         public float[][] Windows { get; private set; }
     }

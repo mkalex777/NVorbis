@@ -13,7 +13,7 @@ namespace NVorbis
             internal float[] Coeff;
             internal float Amp;
 
-            public bool ExecuteChannel => (ForceEnergy || Amp > 0f) && !ForceNoEnergy;
+            public bool ExecuteChannel { get { return (ForceEnergy || Amp > 0f) && !ForceNoEnergy; } }
 
             public bool ForceEnergy { get; set; }
             public bool ForceNoEnergy { get; set; }
@@ -51,17 +51,13 @@ namespace NVorbis
             }
             _bookBits = Utils.ilog(_books.Length);
 
-            _barkMaps = new Dictionary<int, int[]>
-            {
-                [block0Size] = SynthesizeBarkCurve(block0Size / 2),
-                [block1Size] = SynthesizeBarkCurve(block1Size / 2)
-            };
+            _barkMaps = new Dictionary<int, int[]>();
+            _barkMaps[block0Size] = SynthesizeBarkCurve(block0Size / 2);
+            _barkMaps[block1Size] = SynthesizeBarkCurve(block1Size / 2);
 
-            _wMap = new Dictionary<int, float[]>
-            {
-                [block0Size] = SynthesizeWDelMap(block0Size / 2),
-                [block1Size] = SynthesizeWDelMap(block1Size / 2)
-            };
+            _wMap = new Dictionary<int, float[]>();
+            _wMap[block0Size] = SynthesizeWDelMap(block0Size / 2);
+            _wMap[block1Size] = SynthesizeWDelMap(block1Size / 2);
         }
 
         int[] SynthesizeBarkCurve(int n)
@@ -151,7 +147,9 @@ namespace NVorbis
 
         public void Apply(IFloorData floorData, int blockSize, float[] residue)
         {
-            if (!(floorData is Data data)) throw new ArgumentException("Incorrect packet data!");
+            if (!(floorData is Data)) 
+                throw new ArgumentException("Incorrect packet data!");
+            var data = floorData as Data;
 
             var n = blockSize / 2;
 

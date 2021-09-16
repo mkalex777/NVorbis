@@ -11,8 +11,14 @@ namespace NVorbis
     /// </summary>
     public sealed class VorbisReader : IVorbisReader
     {
-        internal static Func<Stream, bool, Contracts.IContainerReader> CreateContainerReader { get; set; } = (s, cod) => new Ogg.ContainerReader(s, cod);
-        internal static Func<Contracts.IPacketProvider, IStreamDecoder> CreateStreamDecoder { get; set; } = pp => new StreamDecoder(pp, new Factory());
+        internal static Contracts.IContainerReader CreateContainerReader(Stream s, bool cod)
+        {
+            return new Ogg.ContainerReader(s, cod);            
+        }
+        internal static IStreamDecoder CreateStreamDecoder(Contracts.IPacketProvider pp)
+        {
+            return new StreamDecoder(pp, new Factory());
+        }
 
         private readonly List<IStreamDecoder> _decoders;
         private readonly Contracts.IContainerReader _containerReader;
@@ -56,20 +62,12 @@ namespace NVorbis
                     stream.Dispose();
                 }
 
-                throw new ArgumentException("Could not load the specified container!", nameof(containerReader));
+                throw new ArgumentException("Could not load the specified container!", "containerReader");
             }
             _closeOnDispose = closeOnDispose;
             _containerReader = containerReader;
             _streamDecoder = _decoders[0];
         }
-
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-        [Obsolete("Use \"new StreamDecoder(Contracts.IPacketProvider)\" and the container's NewStreamCallback or Streams property instead.", true)]
-        public VorbisReader(Contracts.IContainerReader containerReader) => throw new NotSupportedException();
-
-        [Obsolete("Use \"new StreamDecoder(Contracts.IPacketProvider)\" instead.", true)]
-        public VorbisReader(Contracts.IPacketProvider packetProvider) => throw new NotSupportedException();
-#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 
         private bool ProcessNewStream(Contracts.IPacketProvider packetProvider)
         {
@@ -77,7 +75,8 @@ namespace NVorbis
             decoder.ClipSamples = true;
 
             var ea = new NewStreamEventArgs(decoder);
-            NewStream?.Invoke(this, ea);
+            if (NewStream != null)
+                NewStream.Invoke(this, ea);
             if (!ea.IgnoreStream)
             {
                 _decoders.Add(decoder);
@@ -113,7 +112,7 @@ namespace NVorbis
         /// <summary>
         /// Gets the list of <see cref="IStreamDecoder"/> instances associated with the loaded file / container.
         /// </summary>
-        public IReadOnlyList<IStreamDecoder> Streams => _decoders;
+        public IReadOnlyList<IStreamDecoder> Streams { get { return _decoders.ToReadOnlyList(); } }
 
         #region Convenience Helpers
 
@@ -123,112 +122,65 @@ namespace NVorbis
         /// <summary>
         /// Gets the number of channels in the stream.
         /// </summary>
-        public int Channels => _streamDecoder.Channels;
+        public int Channels { get { return _streamDecoder.Channels; } }
 
         /// <summary>
         /// Gets the sample rate of the stream.
         /// </summary>
-        public int SampleRate => _streamDecoder.SampleRate;
+        public int SampleRate { get { return _streamDecoder.SampleRate; } }
 
         /// <summary>
         /// Gets the upper bitrate limit for the stream, if specified.
         /// </summary>
-        public int UpperBitrate => _streamDecoder.UpperBitrate;
+        public int UpperBitrate { get { return _streamDecoder.UpperBitrate; } }
 
         /// <summary>
         /// Gets the nominal bitrate of the stream, if specified.  May be calculated from <see cref="LowerBitrate"/> and <see cref="UpperBitrate"/>.
         /// </summary>
-        public int NominalBitrate => _streamDecoder.NominalBitrate;
+        public int NominalBitrate { get { return _streamDecoder.NominalBitrate; } }
 
         /// <summary>
         /// Gets the lower bitrate limit for the stream, if specified.
         /// </summary>
-        public int LowerBitrate => _streamDecoder.LowerBitrate;
+        public int LowerBitrate { get { return _streamDecoder.LowerBitrate; } }
 
         /// <summary>
         /// Gets the tag data from the stream's header.
         /// </summary>
-        public ITagData Tags => _streamDecoder.Tags;
-
-        /// <summary>
-        /// Gets the encoder's vendor string for the current selected Vorbis stream
-        /// </summary>
-        [Obsolete("Use .Tags.EncoderVendor instead.")]
-        public string Vendor => _streamDecoder.Tags.EncoderVendor;
-
-        /// <summary>
-        /// Gets the comments in the current selected Vorbis stream
-        /// </summary>
-        [Obsolete("Use .Tags.All instead.")]
-        public string[] Comments => _streamDecoder.Tags.All.SelectMany(k => k.Value, (kvp, Item) => $"{kvp.Key}={Item}").ToArray();
-
-        /// <summary>
-        /// Gets whether the previous short sample count was due to a parameter change in the stream.
-        /// </summary>
-        [Obsolete("No longer supported.  Will receive a new stream when parameters change.", true)]
-        public bool IsParameterChange => throw new NotSupportedException();
+        public ITagData Tags { get { return _streamDecoder.Tags; } }
 
         /// <summary>
         /// Gets the number of bits read that are related to framing and transport alone.
         /// </summary>
-        public long ContainerOverheadBits => _containerReader?.ContainerBits ?? 0;
+        public long ContainerOverheadBits { get { return _containerReader != null ? _containerReader.ContainerBits : 0; } }
 
         /// <summary>
         /// Gets the number of bits skipped in the container due to framing, ignored streams, or sync loss.
         /// </summary>
-        public long ContainerWasteBits => _containerReader?.WasteBits ?? 0;
+        public long ContainerWasteBits { get { return _containerReader != null ? _containerReader.WasteBits : 0; } }
 
         /// <summary>
         /// Gets the currently-selected stream's index.
         /// </summary>
-        public int StreamIndex => _decoders.IndexOf(_streamDecoder);
-
-        /// <summary>
-        /// Returns the number of logical streams found so far in the physical container.
-        /// </summary>
-        [Obsolete("Use .Streams.Count instead.")]
-        public int StreamCount => _decoders.Count;
-
-        /// <summary>
-        /// Gets or Sets the current timestamp of the decoder.  Is the timestamp before the next sample to be decoded.
-        /// </summary>
-        [Obsolete("Use VorbisReader.TimePosition instead.")]
-        public TimeSpan DecodedTime
-        {
-            get => _streamDecoder.TimePosition;
-            set => TimePosition = value;
-        }
-
-        /// <summary>
-        /// Gets or Sets the current position of the next sample to be decoded.
-        /// </summary>
-        [Obsolete("Use VorbisReader.SamplePosition instead.")]
-        public long DecodedPosition
-        {
-            get => _streamDecoder.SamplePosition;
-            set => SamplePosition = value;
-        }
+        public int StreamIndex { get { return _decoders.IndexOf(_streamDecoder); } }
 
         /// <summary>
         /// Gets the total duration of the decoded stream.
         /// </summary>
-        public TimeSpan TotalTime => _streamDecoder.TotalTime;
+        public TimeSpan TotalTime { get { return _streamDecoder.TotalTime; } }
 
         /// <summary>
         /// Gets the total number of samples in the decoded stream.
         /// </summary>
-        public long TotalSamples => _streamDecoder.TotalSamples;
+        public long TotalSamples { get { return _streamDecoder.TotalSamples; } }
 
         /// <summary>
         /// Gets or sets the current time position of the stream.
         /// </summary>
         public TimeSpan TimePosition
         {
-            get => _streamDecoder.TimePosition;
-            set
-            {
-                _streamDecoder.TimePosition = value;
-            }
+            get { return _streamDecoder.TimePosition; }
+            set { _streamDecoder.TimePosition = value; }
         }
 
         /// <summary>
@@ -236,42 +188,33 @@ namespace NVorbis
         /// </summary>
         public long SamplePosition
         {
-            get => _streamDecoder.SamplePosition;
-            set
-            {
-                _streamDecoder.SamplePosition = value;
-            }
+            get { return _streamDecoder.SamplePosition; }
+            set { _streamDecoder.SamplePosition = value; }
         }
 
         /// <summary>
         /// Gets whether the current stream has ended.
         /// </summary>
-        public bool IsEndOfStream => _streamDecoder.IsEndOfStream;
+        public bool IsEndOfStream { get { return _streamDecoder.IsEndOfStream; } }
 
         /// <summary>
         /// Gets or sets whether to clip samples returned by <see cref="ReadSamples(float[], int, int)"/>.
         /// </summary>
         public bool ClipSamples
         {
-            get => _streamDecoder.ClipSamples;
-            set => _streamDecoder.ClipSamples = value;
+            get { return _streamDecoder.ClipSamples; }
+            set { _streamDecoder.ClipSamples = value; }
         }
 
         /// <summary>
         /// Gets whether <see cref="ReadSamples(float[], int, int)"/> has returned any clipped samples.
         /// </summary>
-        public bool HasClipped => _streamDecoder.HasClipped;
+        public bool HasClipped { get { return _streamDecoder.HasClipped; } }
 
         /// <summary>
         /// Gets the <see cref="IStreamStats"/> instance for this stream.
         /// </summary>
-        public IStreamStats StreamStats => _streamDecoder.Stats;
-
-        /// <summary>
-        /// Gtes stats from each decoder stream available.
-        /// </summary>
-        [Obsolete("Use Streams[*].Stats instead.", true)]
-        public IVorbisStreamStatus[] Stats => throw new NotSupportedException();
+        public IStreamStats StreamStats { get { return _streamDecoder.Stats; } }
 
         /// <summary>
         /// Searches for the next stream in a concatenated file.  Will raise <see cref="NewStream"/> for the found stream, and will add it to <see cref="Streams"/> if not marked as ignored.
@@ -290,7 +233,7 @@ namespace NVorbis
         /// <returns><see langword="true"/> if the properties of the logical stream differ from those of the one previously being decoded. Otherwise, <see langword="false"/>.</returns>
         public bool SwitchStreams(int index)
         {
-            if (index < 0 || index >= _decoders.Count) throw new ArgumentOutOfRangeException(nameof(index));
+            if (index < 0 || index >= _decoders.Count) throw new ArgumentOutOfRangeException("index");
 
             var newDecoder = _decoders[index];
             var oldDecoder = _streamDecoder;
@@ -361,12 +304,6 @@ namespace NVorbis
             }
             return 0;
         }
-
-        /// <summary>
-        /// Acknowledges a parameter change as signalled by <see cref="ReadSamples(float[], int, int)"/>.
-        /// </summary>
-        [Obsolete("No longer needed.", true)]
-        public void ClearParameterChange() => throw new NotSupportedException();
 
         #endregion
     }

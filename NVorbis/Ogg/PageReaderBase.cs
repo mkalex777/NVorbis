@@ -7,7 +7,10 @@ namespace NVorbis.Ogg
 {
     abstract class PageReaderBase : IPageReader
     {
-        internal static Func<ICrc> CreateCrc { get; set; } = () => new Crc();
+        internal static ICrc CreateCrc()
+        {
+            return new Crc();
+        }
 
         private readonly ICrc _crc = CreateCrc();
         private readonly HashSet<int> _ignoredSerials = new HashSet<int>();
@@ -24,7 +27,15 @@ namespace NVorbis.Ogg
             _closeOnDispose = closeOnDispose;
         }
 
-        protected long StreamPosition => _stream?.Position ?? throw new ObjectDisposedException(nameof(PageReaderBase));
+        protected long StreamPosition 
+        {
+            get 
+            { 
+                if (_stream == null)
+                    throw new ObjectDisposedException(typeof(PageReaderBase).Name);
+                return _stream.Position;
+            }
+        }
 
         public long ContainerBits { get; private set; }
 
@@ -220,9 +231,9 @@ namespace NVorbis.Ogg
 
         virtual public void Lock() { }
 
-        virtual protected bool CheckLock() => true;
+        virtual protected bool CheckLock() { return true; }
 
-        virtual public bool Release() => false;
+        virtual public bool Release() { return false; }
 
         public bool ReadNextPage()
         {
@@ -241,7 +252,9 @@ namespace NVorbis.Ogg
                 {
                     if (VerifyHeader(_headerBuf, i, ref cnt, true))
                     {
-                        if (VerifyPage(_headerBuf, i, cnt, out var pageBuf, out var bytesRead))
+                        byte[] pageBuf;
+                        int bytesRead;
+                        if (VerifyPage(_headerBuf, i, cnt, out pageBuf, out bytesRead))
                         {
                             // one way or the other, we have to clear out the page's bytes from the queue (if queued)
                             ClearEnqueuedData(bytesRead);
@@ -299,7 +312,8 @@ namespace NVorbis.Ogg
 
             if (_closeOnDispose)
             {
-                _stream?.Dispose();
+                if (_stream != null)
+                    _stream.Dispose();
             }
             _stream = null;
         }

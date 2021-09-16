@@ -6,8 +6,14 @@ namespace TestApp
 {
     class VorbisWaveStream : NAudio.Wave.WaveStream, NAudio.Wave.ISampleProvider
     {
-        internal static Func<string, IVorbisReader> CreateFileReader { get; set; } = fn => new VorbisReader(fn);
-        internal static Func<System.IO.Stream, IVorbisReader> CreateStreamReader { get; set; } = ss => new VorbisReader(ss, false);
+        internal static IVorbisReader CreateFileReader(string fn)
+        {
+            return new VorbisReader(fn);
+        }
+        internal static IVorbisReader CreateStreamReader(System.IO.Stream ss)
+        {
+            return new VorbisReader(ss, false);
+        }
 
         private IVorbisReader _reader;
 
@@ -33,27 +39,29 @@ namespace TestApp
         {
             if (disposing)
             {
-                _reader?.Dispose();
+                if (_reader != null)
+                    _reader.Dispose();
                 _reader = null;
             }
 
             base.Dispose(disposing);
         }
 
-        public override NAudio.Wave.WaveFormat WaveFormat => _waveFormat;
+        public override NAudio.Wave.WaveFormat WaveFormat { get { return _waveFormat; } }
 
         private void UpdateWaveFormat()
         {
             _waveFormat = NAudio.Wave.WaveFormat.CreateIeeeFloatWaveFormat(_reader.SampleRate, _reader.Channels);
-            ParameterChange?.Invoke(this, EventArgs.Empty);
+            if (ParameterChange != null)
+                ParameterChange.Invoke(this, EventArgs.Empty);
         }
 
-        public override long Length => _reader.TotalSamples * _waveFormat.BlockAlign;
+        public override long Length { get { return _reader.TotalSamples * _waveFormat.BlockAlign; } }
 
         public override long Position
         {
-            get => _reader.SamplePosition * _waveFormat.BlockAlign;
-            set => _reader.SamplePosition = value / _waveFormat.BlockAlign;
+            get { return _reader.SamplePosition * _waveFormat.BlockAlign; }
+            set { _reader.SamplePosition = value / _waveFormat.BlockAlign; }
         }
 
         // This buffer can be static because it can only be used by 1 instance per thread
@@ -116,18 +124,19 @@ namespace TestApp
 
         public bool IsParameterChange { get; private set; }
 
-        public void ClearParameterChange() => IsParameterChange = false;
+        public void ClearParameterChange() { IsParameterChange = false; }
 
-        public bool IsEndOfStream => _reader.IsEndOfStream;
+        public bool IsEndOfStream { get { return _reader.IsEndOfStream; } }
 
-        public int StreamCount => _reader.Streams.Count;
+        public int StreamCount { get { return _reader.Streams.Count; } }
 
         public int StreamIndex
         {
-            get => _reader.StreamIndex;
+            get { return _reader.StreamIndex; }
             set
             {
-                if (value < 0 || value >= _reader.Streams.Count) throw new ArgumentOutOfRangeException(nameof(value));
+                if (value < 0 || value >= _reader.Streams.Count) 
+                    throw new ArgumentOutOfRangeException("value");
                 if (_reader.SwitchStreams(value))
                 {
                     UpdateWaveFormat();
@@ -135,24 +144,24 @@ namespace TestApp
             }
         }
 
-        public bool FindNewStream() => _reader.FindNextStream();
+        public bool FindNewStream() { return _reader.FindNextStream(); }
 
-        public IStreamStats Stats => _reader.StreamStats;
-        public ITagData Tags => _reader.Tags;
+        public IStreamStats Stats { get { return _reader.StreamStats; } }
+        public ITagData Tags { get { return _reader.Tags; } }
 
         /// <summary>
         /// Gets the encoder's upper bitrate of the current selected Vorbis stream
         /// </summary>
-        public int UpperBitrate => _reader.UpperBitrate;
+        public int UpperBitrate { get { return _reader.UpperBitrate; } }
 
         /// <summary>
         /// Gets the encoder's nominal bitrate of the current selected Vorbis stream
         /// </summary>
-        public int NominalBitrate => _reader.NominalBitrate;
+        public int NominalBitrate { get { return _reader.NominalBitrate; } }
 
         /// <summary>
         /// Gets the encoder's lower bitrate of the current selected Vorbis stream
         /// </summary>
-        public int LowerBitrate => _reader.LowerBitrate;
+        public int LowerBitrate { get { return _reader.LowerBitrate; } }
     }
 }

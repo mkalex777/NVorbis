@@ -27,7 +27,7 @@ namespace NVorbis.Ogg
             _data = initialData;
         }
 
-        protected override int TotalBits => (_dataCount + _data.Length) * 8;
+        protected override int TotalBits { get { return (_dataCount + _data.Length) * 8; } }
 
         protected override int ReadNextByte()
         {
@@ -66,7 +66,8 @@ namespace NVorbis.Ogg
 
         public override void Done()
         {
-            _packetReader?.InvalidatePacketCache(this);
+            if (_packetReader != null)
+                _packetReader.InvalidatePacketCache(this);
 
             base.Done();
         }

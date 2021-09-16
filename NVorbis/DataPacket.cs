@@ -71,8 +71,8 @@ namespace NVorbis
         /// </summary>
         public bool IsResync
         {
-            get => GetFlag(PacketFlags.IsResync);
-            set => SetFlag(PacketFlags.IsResync, value);
+            get { return GetFlag(PacketFlags.IsResync); }
+            set { SetFlag(PacketFlags.IsResync, value); }
         }
 
         /// <summary>
@@ -80,8 +80,8 @@ namespace NVorbis
         /// </summary>
         public bool IsShort
         {
-            get => GetFlag(PacketFlags.IsShort);
-            private set => SetFlag(PacketFlags.IsShort, value);
+            get { return GetFlag(PacketFlags.IsShort); }
+            private set { SetFlag(PacketFlags.IsShort, value); }
         }
 
         /// <summary>
@@ -89,26 +89,26 @@ namespace NVorbis
         /// </summary>
         public bool IsEndOfStream
         {
-            get => GetFlag(PacketFlags.IsEndOfStream);
-            set => SetFlag(PacketFlags.IsEndOfStream, value);
+            get { return GetFlag(PacketFlags.IsEndOfStream); }
+            set { SetFlag(PacketFlags.IsEndOfStream, value); }
         }
 
         /// <summary>
         /// Gets the number of bits read from the packet.
         /// </summary>
-        public int BitsRead => _readBits;
+        public int BitsRead { get { return _readBits; } }
 
         /// <summary>
         /// Gets the number of bits left in the packet.
         /// </summary>
-        public int BitsRemaining => TotalBits - _readBits;
+        public int BitsRemaining { get { return TotalBits - _readBits; } }
 
         /// <summary>
         /// Gets the total number of bits in the packet.
         /// </summary>
         abstract protected int TotalBits { get; }
 
-        bool GetFlag(PacketFlags flag) => _packetFlags.HasFlag(flag);
+        bool GetFlag(PacketFlags flag) { return _packetFlags.HasFlag(flag); }
 
         void SetFlag(PacketFlags flag, bool value)
         {
@@ -152,6 +152,7 @@ namespace NVorbis
             // short-circuit 0
             if (count == 0) return 0UL;
 
+            int _;
             var value = TryPeekBits(count, out _);
 
             SkipBits(count);
@@ -167,7 +168,8 @@ namespace NVorbis
         /// <returns>The value of the bits read.</returns>
         public ulong TryPeekBits(int count, out int bitsRead)
         {
-            if (count < 0 || count > 64) throw new ArgumentOutOfRangeException(nameof(count));
+            if (count < 0 || count > 64) 
+                throw new ArgumentOutOfRangeException("count");
             if (count == 0)
             {
                 bitsRead = 0;

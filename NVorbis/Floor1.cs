@@ -12,7 +12,7 @@ namespace NVorbis
             internal int[] Posts = new int[64];
             internal int PostCount;
 
-            public bool ExecuteChannel => (ForceEnergy || PostCount > 0) && !ForceNoEnergy;
+            public bool ExecuteChannel { get { return (ForceEnergy || PostCount > 0) && !ForceNoEnergy; } }
 
             public bool ForceEnergy { get; set; }
             public bool ForceNoEnergy { get; set; }
@@ -185,7 +185,9 @@ namespace NVorbis
 
         public void Apply(IFloorData floorData, int blockSize, float[] residue)
         {
-            if (!(floorData is Data data)) throw new ArgumentException("Incorrect packet data!", "packetData");
+            if (!(floorData is Data))
+                throw new ArgumentException("Incorrect packet data!", "floorData");
+            var data = floorData as Data;
 
             var n = blockSize / 2;
 

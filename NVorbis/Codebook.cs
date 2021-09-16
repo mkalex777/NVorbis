@@ -36,7 +36,7 @@ namespace NVorbis
                 }
             }
 
-            public int Count => _count;
+            public int Count { get { return _count; } }
 
             public IEnumerator<int> GetEnumerator()
             {
@@ -160,7 +160,7 @@ namespace NVorbis
 
                 if (!ComputeCodewords(sparse, codewords, codewordLengths, _lengths, Entries, values)) throw new InvalidDataException();
 
-                var valueList = (IReadOnlyList<int>)values ?? FastRange.Get(0, codewords.Length);
+                var valueList = values.ToReadOnlyList() ?? FastRange.Get(0, codewords.Length);
 
                 huffman.GenerateTable(valueList, codewordLengths ?? _lengths, codewords);
                 _prefixList = huffman.PrefixTree;
@@ -293,7 +293,8 @@ namespace NVorbis
 
         public int DecodeScalar(IPacket packet)
         {
-            var data = (int)packet.TryPeekBits(_prefixBitLength, out var bitsRead);
+            int bitsRead;
+            var data = (int)packet.TryPeekBits(_prefixBitLength, out bitsRead);
             if (bitsRead == 0) return -1;
 
             // try to get the value from the prefix list...
@@ -305,6 +306,7 @@ namespace NVorbis
             }
 
             // nope, not possible... run through the overflow nodes
+            int _;
             data = (int)packet.TryPeekBits(_maxBits, out _);
 
             for (var i = 0; i < _overflowList.Count; i++)
@@ -319,7 +321,10 @@ namespace NVorbis
             return -1;
         }
 
-        public float this[int entry, int dim] => _lookupTable[entry * Dimensions + dim];
+        public float this[int entry, int dim]
+        {
+            get { return _lookupTable[entry * Dimensions + dim]; }
+        }
 
         public int Dimensions { get; private set; }
 

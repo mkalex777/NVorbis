@@ -11,8 +11,14 @@ namespace NVorbis.Ogg
     /// </summary>
     public sealed class ContainerReader : Contracts.IContainerReader
     {
-        internal static Func<Stream, bool, Func<Contracts.IPacketProvider, bool>, IPageReader> CreatePageReader { get; set; } = (s, cod, cb) => new PageReader(s, cod, cb);
-        internal static Func<Stream, bool, Func<Contracts.IPacketProvider, bool>, IPageReader> CreateForwardOnlyPageReader { get; set; } = (s, cod, cb) => new ForwardOnlyPageReader(s, cod, cb);
+        internal static IPageReader CreatePageReader(Stream s, bool cod, Func<Contracts.IPacketProvider, bool> cb)
+        {
+            return new PageReader(s, cod, cb);
+        }
+        internal static IPageReader CreateForwardOnlyPageReader(Stream s, bool cod, Func<Contracts.IPacketProvider, bool> cb)
+        {
+            return new ForwardOnlyPageReader(s, cod, cb);
+        }
 
         private IPageReader _reader;
         private List<WeakReference<Contracts.IPacketProvider>> _packetProviders;
@@ -31,7 +37,8 @@ namespace NVorbis.Ogg
             var list = new List<Contracts.IPacketProvider>(_packetProviders.Count);
             for (var i = 0; i < _packetProviders.Count; i++)
             {
-                if (_packetProviders[i].TryGetTarget(out var pp))
+                Contracts.IPacketProvider pp;
+                if (_packetProviders[i].TryGetTarget(out pp))
                 {
                     list.Add(pp);
                 }
@@ -41,23 +48,23 @@ namespace NVorbis.Ogg
                     --i;
                 }
             }
-            return list;
+            return list.ToReadOnlyList();
         }
 
         /// <summary>
         /// Gets whether the underlying stream can seek.
         /// </summary>
-        public bool CanSeek { get; }
+        public bool CanSeek { get; private set; }
 
         /// <summary>
         /// Gets the number of bits in the container that are not associated with a logical stream.
         /// </summary>
-        public long WasteBits => _reader.WasteBits;
+        public long WasteBits { get { return _reader.WasteBits; } }
 
         /// <summary>
         /// Gets the number of bits in the container that are strictly for framing of logical streams.
         /// </summary>
-        public long ContainerBits => _reader.ContainerBits;
+        public long ContainerBits { get { return _reader.ContainerBits; } }
 
 
         /// <summary>
@@ -68,7 +75,8 @@ namespace NVorbis.Ogg
         /// <exception cref="ArgumentException"><paramref name="stream"/>'s <see cref="Stream.CanSeek"/> is <c>False</c>.</exception>
         public ContainerReader(Stream stream, bool closeOnDispose)
         {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (stream == null) 
+                throw new ArgumentNullException("stream");
 
             _packetProviders = new List<WeakReference<Contracts.IPacketProvider>>();
 
@@ -122,7 +130,7 @@ namespace NVorbis.Ogg
             var relock = _reader.Release();
             try
             {
-                if (NewStreamCallback?.Invoke(packetProvider) ?? true)
+                if (NewStreamCallback == null || NewStreamCallback.Invoke(packetProvider))
                 {
                     _packetProviders.Add(new WeakReference<Contracts.IPacketProvider>(packetProvider));
                     _foundStream = true;
@@ -144,7 +152,8 @@ namespace NVorbis.Ogg
         /// </summary>
         public void Dispose()
         {
-            _reader?.Dispose();
+            if (_reader != null)
+                _reader.Dispose();
             _reader = null;
         }
     }

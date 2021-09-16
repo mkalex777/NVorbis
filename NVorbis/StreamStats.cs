@@ -55,15 +55,15 @@ namespace NVorbis
             }
         }
 
-        public long ContainerBits => _containerBits;
+        public long ContainerBits { get { return _containerBits; } }
 
-        public long OverheadBits => _headerBits;
+        public long OverheadBits { get { return _headerBits; } }
 
-        public long AudioBits => _audioBits;
+        public long AudioBits { get { return _audioBits; } }
 
-        public long WasteBits => _wasteBits;
+        public long WasteBits { get { return _wasteBits; } }
 
-        public int PacketCount => _packetCount;
+        public int PacketCount { get { return _packetCount; } }
 
         public void ResetStats()
         {

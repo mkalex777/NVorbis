@@ -7,7 +7,7 @@ namespace NVorbis
 {
     internal class TagData : ITagData
     {
-        static IReadOnlyList<string> s_emptyList = new List<string>();
+        static IReadOnlyList<string> s_emptyList = new List<string>().ToReadOnlyList();
 
         Dictionary<string, IList<string>> _tags;
 
@@ -33,8 +33,8 @@ namespace NVorbis
                                      + parts[1];
                     parts[0] = parts[0].Substring(0, bktIdx);
                 }
-
-                if (tags.TryGetValue(parts[0].ToUpperInvariant(), out var list))
+                IList<string> list;
+                if (tags.TryGetValue(parts[0].ToUpperInvariant(), out list))
                 {
                     list.Add(parts[1]);
                 }
@@ -62,45 +62,46 @@ namespace NVorbis
 
         public IReadOnlyList<string> GetTagMulti(string key)
         {
-            if (_tags.TryGetValue(key.ToUpperInvariant(), out var values))
+            IList<string> values;
+            if (_tags.TryGetValue(key.ToUpperInvariant(), out values))
             {
                 return (IReadOnlyList<string>)values;
             }
             return s_emptyList;
         }
 
-        public IReadOnlyDictionary<string, IReadOnlyList<string>> All => (IReadOnlyDictionary<string, IReadOnlyList<string>>)_tags;
+        public Dictionary<string, IList<string>> All { get { return _tags; } }
 
-        public string EncoderVendor { get; }
+        public string EncoderVendor { get; private set; }
 
-        public string Title => GetTagSingle("TITLE");
+        public string Title { get { return GetTagSingle("TITLE"); } }
 
-        public string Version => GetTagSingle("VERSION");
+        public string Version { get { return GetTagSingle("VERSION"); } }
 
-        public string Album => GetTagSingle("ALBUM");
+        public string Album { get { return GetTagSingle("ALBUM"); } }
 
-        public string TrackNumber => GetTagSingle("TRACKNUMBER");
+        public string TrackNumber { get { return GetTagSingle("TRACKNUMBER"); } }
 
-        public string Artist => GetTagSingle("ARTIST");
+        public string Artist { get { return GetTagSingle("ARTIST"); } }
 
-        public IReadOnlyList<string> Performers => GetTagMulti("PERFORMER");
+        public IReadOnlyList<string> Performers { get { return GetTagMulti("PERFORMER"); } }
 
-        public string Copyright => GetTagSingle("COPYRIGHT");
+        public string Copyright { get { return GetTagSingle("COPYRIGHT"); } }
 
-        public string License => GetTagSingle("LICENSE");
+        public string License { get { return GetTagSingle("LICENSE"); } }
 
-        public string Organization => GetTagSingle("ORGANIZATION");
+        public string Organization { get { return GetTagSingle("ORGANIZATION"); } }
 
-        public string Description => GetTagSingle("DESCRIPTION");
+        public string Description { get { return GetTagSingle("DESCRIPTION"); } }
 
-        public IReadOnlyList<string> Genres => GetTagMulti("GENRE");
+        public IReadOnlyList<string> Genres { get { return GetTagMulti("GENRE"); } }
 
-        public IReadOnlyList<string> Dates => GetTagMulti("DATE");
+        public IReadOnlyList<string> Dates { get { return GetTagMulti("DATE"); } }
 
-        public IReadOnlyList<string> Locations => GetTagMulti("LOCATION");
+        public IReadOnlyList<string> Locations { get { return GetTagMulti("LOCATION"); } }
 
-        public string Contact => GetTagSingle("CONTACT");
+        public string Contact { get { return GetTagSingle("CONTACT"); } }
 
-        public string Isrc => GetTagSingle("ISRC");
+        public string Isrc { get { return GetTagSingle("ISRC"); } }
     }
 }

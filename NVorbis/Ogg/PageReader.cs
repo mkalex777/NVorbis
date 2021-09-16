@@ -8,7 +8,10 @@ namespace NVorbis.Ogg
 {
     class PageReader : PageReaderBase, IPageData
     {
-        internal static Func<IPageData, int, IStreamPageReader> CreateStreamPageReader { get; set; } = (pr, ss) => new StreamPageReader(pr, ss);
+        internal static IStreamPageReader CreateStreamPageReader(IPageData pr, int ss)
+        {
+            return new StreamPageReader(pr, ss);
+        }
 
         private readonly Dictionary<int, IStreamPageReader> _streamReaders = new Dictionary<int, IStreamPageReader>();
         private readonly Func<Contracts.IPacketProvider, bool> _newStreamCallback;
@@ -94,19 +97,19 @@ namespace NVorbis.Ogg
 
         public override void Lock()
         {
-            Monitor.Enter(_readLock);
+            MonitorEx.Enter(_readLock);
         }
 
         protected override bool CheckLock()
         {
-            return Monitor.IsEntered(_readLock);
+            return MonitorEx.IsEntered(_readLock);
         }
 
         public override bool Release()
         {
-            if (Monitor.IsEntered(_readLock))
+            if (MonitorEx.IsEntered(_readLock))
             {
-                Monitor.Exit(_readLock);
+                MonitorEx.Exit(_readLock);
                 return true;
             }
             return false;
@@ -132,7 +135,8 @@ namespace NVorbis.Ogg
 
             _packets = ReadPackets(PacketCount, new Span<byte>(pageBuf, 27, pageBuf[26]), new Memory<byte>(pageBuf, 27 + pageBuf[26], pageBuf.Length - 27 - pageBuf[26]));
 
-            if (_streamReaders.TryGetValue(streamSerial, out var spr))
+            IStreamPageReader spr;
+            if (_streamReaders.TryGetValue(streamSerial, out spr))
             {
                 spr.AddPage();
 
